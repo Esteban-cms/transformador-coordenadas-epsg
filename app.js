@@ -2,7 +2,7 @@ let datos = [];
 let mapa;
 let capaMarcadores;
 
-// EPSG comunes
+// EPSG comunes (Colombia + WGS84)
 const epsgList = {
   "4326": "+proj=longlat +datum=WGS84 +no_defs",
   "3116": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs",
@@ -10,7 +10,7 @@ const epsgList = {
   "9377": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs"
 };
 
-// Cargar combos
+// Cargar combos EPSG
 const origenSel = document.getElementById("epsgOrigen");
 const destinoSel = document.getElementById("epsgDestino");
 
@@ -22,7 +22,7 @@ origenSel.value = "4326";
 destinoSel.value = "3116";
 
 // ------------------------
-// Funciones
+// INGRESO DE DATOS
 // ------------------------
 
 function agregarCoordenada() {
@@ -38,6 +38,54 @@ function agregarCoordenada() {
   actualizarTabla();
 }
 
+function cargarArchivo(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  if (file.name.endsWith(".xlsx")) {
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const hoja = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(hoja);
+
+      json.forEach(row => {
+        const keys = Object.keys(row).map(k => k.toLowerCase());
+        if (keys.includes("x") && keys.includes("y")) {
+          datos.push({ x: parseFloat(row[keys.find(k => k === "x")]), y: parseFloat(row[keys.find(k => k === "y")]) });
+        } else if (keys.includes("longitud") && keys.includes("latitud")) {
+          datos.push({ x: parseFloat(row[keys.find(k => k === "longitud")]), y: parseFloat(row[keys.find(k => k === "latitud")]) });
+        }
+      });
+
+      actualizarTabla();
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.onload = (e) => {
+      const lines = e.target.result.split(/\r?\n/);
+      lines.forEach(line => {
+        const parts = line.split(/[;, \t]+/);
+        if (parts.length >= 2) {
+          const x = parseFloat(parts[0]);
+          const y = parseFloat(parts[1]);
+          if (!isNaN(x) && !isNaN(y)) {
+            datos.push({ x, y });
+          }
+        }
+      });
+      actualizarTabla();
+    };
+    reader.readAsText(file);
+  }
+}
+
+// ------------------------
+// TRANSFORMACIÓN
+// ------------------------
+
 function transformar() {
   const origen = origenSel.value;
   const destino = destinoSel.value;
@@ -51,6 +99,10 @@ function transformar() {
   actualizarTabla();
 }
 
+// ------------------------
+// TABLA + MENÚ CONTEXTUAL
+// ------------------------
+
 function actualizarTabla() {
   const tbody = document.querySelector("#tabla tbody");
   tbody.innerHTML = "";
@@ -58,8 +110,8 @@ function actualizarTabla() {
   datos.forEach((d, i) => {
     const tr = document.createElement("tr");
 
-    const isGeografico = origenSel.value === "4326" || destinoSel.value === "4326";
-    const dec = isGeografico ? 7 : 3;
+    const esGeografico = destinoSel.value === "4326" || origenSel.value === "4326";
+    const dec = esGeografico ? 7 : 3;
 
     tr.innerHTML = `
       <td>${i + 1}</td>
@@ -69,7 +121,6 @@ function actualizarTabla() {
       <td>${d.y_t !== undefined ? d.y_t.toFixed(dec) : ""}</td>
     `;
 
-    // Clic derecho (copiar o eliminar)
     tr.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       mostrarMenu(e.pageX, e.pageY, i);
@@ -79,10 +130,6 @@ function actualizarTabla() {
   });
 }
 
-// ------------------------
-// MENÚ CONTEXTUAL
-// ------------------------
-
 function mostrarMenu(x, y, index) {
   const menu = document.createElement("div");
   menu.style.position = "absolute";
@@ -90,13 +137,15 @@ function mostrarMenu(x, y, index) {
   menu.style.top = y + "px";
   menu.style.background = "white";
   menu.style.border = "1px solid #aaa";
-  menu.style.padding = "5px";
+  menu.style.borderRadius = "6px";
+  menu.style.padding = "6px";
   menu.style.zIndex = 1000;
+  menu.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
 
   menu.innerHTML = `
-    <div onclick="copiarFila(${index}, 'origen')">📋 Copiar origen</div>
-    <div onclick="copiarFila(${index}, 'transformado')">📋 Copiar transformado</div>
-    <div onclick="eliminarFila(${index})" style="color:red;">🗑 Eliminar</div>
+    <div style="padding:4px; cursor:pointer;" onclick="copiarFila(${index}, 'origen')">📋 Copiar origen</div>
+    <div style="padding:4px; cursor:pointer;" onclick="copiarFila(${index}, 'transformado')">📋 Copiar transformado</div>
+    <div style="padding:4px; cursor:pointer; color:red;" onclick="eliminarFila(${index})">🗑 Eliminar</div>
   `;
 
   document.body.appendChild(menu);
@@ -125,6 +174,13 @@ function eliminarFila(index) {
   actualizarTabla();
 }
 
+function limpiarTodo() {
+  if (confirm("¿Desea eliminar todas las coordenadas?")) {
+    datos = [];
+    actualizarTabla();
+  }
+}
+
 // ------------------------
 // COPIAR TODO
 // ------------------------
@@ -148,9 +204,7 @@ function copiarTodo(tipo) {
 // ------------------------
 
 function mostrarMapa(tipo) {
-  if (mapa) {
-    mapa.remove();
-  }
+  if (mapa) mapa.remove();
 
   mapa = L.map("map").setView([4.6, -74.07], 12);
 
@@ -167,4 +221,39 @@ function mostrarMapa(tipo) {
       capaMarcadores.addLayer(L.marker([d.y_t, d.x_t]));
     }
   });
+}
+
+// ------------------------
+// EXPORTAR SHP (GEOJSON)
+// ------------------------
+
+function exportarGeoJSON() {
+  if (datos.length === 0 || datos[0].x_t === undefined) {
+    alert("Debe transformar las coordenadas antes de exportar.");
+    return;
+  }
+
+  const features = datos.map(d => ({
+    type: "Feature",
+    geometry: {
+      type: "Point",
+      coordinates: [d.x_t, d.y_t]
+    },
+    properties: {}
+  }));
+
+  const geojson = {
+    type: "FeatureCollection",
+    features: features
+  };
+
+  const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "coordenadas_transformadas.geojson";
+  a.click();
+
+  URL.revokeObjectURL(url);
 }
