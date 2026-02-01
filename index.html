@@ -3,36 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <title>Transformador de Coordenadas - EPSG</title>
-  <style>
-    body { font-family: Arial; margin: 40px; background: #f7f9fc; }
-    h1 { color: #1f4d7a; }
-    .box { background: white; border-radius: 10px; padding: 25px; max-width: 900px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    code { background: #f0f0f0; padding: 4px 8px; border-radius: 5px; }
-  </style>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
+
   <h1>Transformador de Coordenadas - EPSG</h1>
-  <div class="box">
-    <p>Aplicación en Python para transformar coordenadas entre sistemas EPSG, copiar, eliminar, visualizar en mapa y exportar a Shapefile.</p>
 
-    <h2>Funciones principales</h2>
-    <ul>
-      <li>✔ Transformación entre EPSG</li>
-      <li>✔ Copia rápida en formato QGIS</li>
-      <li>✔ Clic derecho para copiar o eliminar coordenadas</li>
-      <li>✔ Visualización en mapa</li>
-      <li>✔ Exportación a SHP (EPSG:9377)</li>
-    </ul>
-
-    <h2>Instalación</h2>
-    <pre><code>python -m pip install pandas pyproj folium geopandas shapely openpyxl</code></pre>
-
-    <h2>Ejecución</h2>
-    <pre><code>python app_transformador.py</code></pre>
-
-    <h2>Autor</h2>
-    <p>Desarrollado por Esteban Pérez</p>
+  <div class="panel">
+    <input id="xInput" placeholder="X / Longitud">
+    <input id="yInput" placeholder="Y / Latitud">
+    <button onclick="agregarCoordenada()">➕ Agregar</button>
   </div>
+
+  <div class="panel">
+    <label>Origen:</label>
+    <select id="epsgOrigen"></select>
+
+    <label>Destino:</label>
+    <select id="epsgDestino"></select>
+
+    <button onclick="transformar()">🔄 Transformar</button>
+  </div>
+
+  <div class="panel">
+    <button onclick="copiarTodo('origen')">📋 Copiar Origen</button>
+    <button onclick="copiarTodo('transformado')">📋 Copiar Transformado</button>
+    <button onclick="mostrarMapa('origen')">🗺️ Mapa Origen</button>
+    <button onclick="mostrarMapa('transformado')">🗺️ Mapa Transformado</button>
+  </div>
+
+  <table id="tabla">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>X</th>
+        <th>Y</th>
+        <th>X Transformado</th>
+        <th>Y Transformado</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="map" style="height: 400px; margin-top: 20px;"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+
 </body>
 </html>
-
