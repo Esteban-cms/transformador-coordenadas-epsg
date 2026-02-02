@@ -4,7 +4,7 @@ let capaMarcadores;
 let marcadorSeleccionado = null;
 let filaSeleccionada = null;
 
-// 🔹 Definiciones EPSG correctas (incluye 9377 real)
+/* EPSG OFICIALES */
 const epsgDefs = {
   "4326": "+proj=longlat +datum=WGS84 +no_defs",
   "3116": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs",
@@ -12,25 +12,22 @@ const epsgDefs = {
   "9377": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs"
 };
 
-// Registrar EPSG
 for (let code in epsgDefs) {
   proj4.defs("EPSG:" + code, epsgDefs[code]);
 }
 
-// Llenar combos
 const origenSel = document.getElementById("epsgOrigen");
 const destinoSel = document.getElementById("epsgDestino");
 
-for (let epsg in epsgDefs) {
+["3115", "3116", "4326", "9377"].forEach(epsg => {
   origenSel.add(new Option("EPSG:" + epsg, epsg));
   destinoSel.add(new Option("EPSG:" + epsg, epsg));
-}
+});
+
 origenSel.value = "4326";
 destinoSel.value = "9377";
 
-// ------------------------
-// INGRESO
-// ------------------------
+/* -------------------- INGRESO -------------------- */
 
 function agregarCoordenada() {
   const x = parseFloat(document.getElementById("xInput").value);
@@ -89,26 +86,22 @@ function cargarArchivo(event) {
   }
 }
 
-// ------------------------
-// TRANSFORMACIÓN (corregida)
-// ------------------------
+/* -------------------- TRANSFORMACIÓN CORRECTA -------------------- */
 
 function transformar() {
   const origen = "EPSG:" + origenSel.value;
   const destino = "EPSG:" + destinoSel.value;
 
   datos.forEach(d => {
-    const res = proj4(origen, destino, [d.x, d.y]);
-    d.x_t = res[0];
-    d.y_t = res[1];
+    const [x2, y2] = proj4(origen, destino, [d.x, d.y]);
+    d.x_t = x2;
+    d.y_t = y2;
   });
 
   actualizarTabla();
 }
 
-// ------------------------
-// TABLA + SELECCIÓN + MENÚ
-// ------------------------
+/* -------------------- TABLA + MENÚ -------------------- */
 
 function actualizarTabla() {
   const tbody = document.querySelector("#tabla tbody");
@@ -129,10 +122,7 @@ function actualizarTabla() {
       <td>${d.y_t !== undefined ? d.y_t.toFixed(dec) : ""}</td>
     `;
 
-    // Selección con clic izquierdo
     tr.addEventListener("click", () => seleccionarFila(i, tr));
-
-    // Menú con clic derecho
     tr.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       mostrarMenu(e.pageX, e.pageY, i);
@@ -147,7 +137,6 @@ function seleccionarFila(index, tr) {
   tr.classList.add("seleccionada");
   filaSeleccionada = tr;
 
-  // Resaltar marcador en el mapa
   if (marcadorSeleccionado) {
     marcadorSeleccionado.setIcon(iconoNormal);
   }
@@ -155,11 +144,9 @@ function seleccionarFila(index, tr) {
   const d = datos[index];
   if (mapa && capaMarcadores) {
     capaMarcadores.eachLayer(layer => {
-      const lat = layer.getLatLng().lat;
-      const lng = layer.getLatLng().lng;
-
+      const { lat, lng } = layer.getLatLng();
       if (
-        (Math.abs(lat - d.y) < 1e-8 && Math.abs(lng - d.x) < 1e-8) ||
+        Math.abs(lat - d.y) < 1e-8 && Math.abs(lng - d.x) < 1e-8 ||
         (d.y_t !== undefined && Math.abs(lat - d.y_t) < 1e-8 && Math.abs(lng - d.x_t) < 1e-8)
       ) {
         layer.setIcon(iconoSeleccionado);
@@ -213,9 +200,7 @@ function eliminarFila(index) {
   actualizarTabla();
 }
 
-// ------------------------
-// COPIAR TODO
-// ------------------------
+/* -------------------- ACCIONES -------------------- */
 
 function copiarTodo(tipo) {
   let texto = "";
@@ -242,9 +227,7 @@ function limpiarTodo() {
   }
 }
 
-// ------------------------
-// MAPA CON AUTO-ZOOM + CAPAS
-// ------------------------
+/* -------------------- MAPA CON CAPAS Y AUTO ZOOM -------------------- */
 
 const iconoNormal = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -254,7 +237,7 @@ const iconoNormal = L.icon({
 });
 
 const iconoSeleccionado = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-red.png",
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34]
@@ -317,9 +300,7 @@ function mostrarMapa(tipo) {
   L.control.layers(baseMaps).addTo(mapa);
 }
 
-// ------------------------
-// EXPORTAR GEOJSON
-// ------------------------
+/* -------------------- EXPORTAR GEOJSON -------------------- */
 
 function exportarGeoJSON() {
   if (datos.length === 0 || datos[0].x_t === undefined) {
