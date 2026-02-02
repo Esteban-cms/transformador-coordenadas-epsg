@@ -114,7 +114,6 @@ function actualizarTabla() {
 
   const destino = destinoSel.value;
   const esGeografico = destino === "4326";
-
   const dec = esGeografico ? 7 : 3;
 
   datos.forEach((d, i) => {
