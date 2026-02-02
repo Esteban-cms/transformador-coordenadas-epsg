@@ -1,16 +1,18 @@
 let datos = [];
 let mapa;
 let capaMarcadores;
+let marcadorSeleccionado = null;
+let filaSeleccionada = null;
 
-// Definiciones EPSG oficiales (corrigen error hacia 4326)
+// 🔹 Definiciones EPSG correctas (incluye 9377 real)
 const epsgDefs = {
   "4326": "+proj=longlat +datum=WGS84 +no_defs",
   "3116": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs",
   "3115": "+proj=tmerc +lat_0=4 +lon_0=-73 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs",
-  "9377": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs"
+  "9377": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs"
 };
 
-// Registrar EPSG en Proj4
+// Registrar EPSG
 for (let code in epsgDefs) {
   proj4.defs("EPSG:" + code, epsgDefs[code]);
 }
@@ -24,7 +26,7 @@ for (let epsg in epsgDefs) {
   destinoSel.add(new Option("EPSG:" + epsg, epsg));
 }
 origenSel.value = "4326";
-destinoSel.value = "3116";
+destinoSel.value = "9377";
 
 // ------------------------
 // INGRESO
@@ -88,7 +90,7 @@ function cargarArchivo(event) {
 }
 
 // ------------------------
-// TRANSFORMACIÓN
+// TRANSFORMACIÓN (corregida)
 // ------------------------
 
 function transformar() {
@@ -105,7 +107,7 @@ function transformar() {
 }
 
 // ------------------------
-// TABLA + MENÚ
+// TABLA + SELECCIÓN + MENÚ
 // ------------------------
 
 function actualizarTabla() {
@@ -127,6 +129,10 @@ function actualizarTabla() {
       <td>${d.y_t !== undefined ? d.y_t.toFixed(dec) : ""}</td>
     `;
 
+    // Selección con clic izquierdo
+    tr.addEventListener("click", () => seleccionarFila(i, tr));
+
+    // Menú con clic derecho
     tr.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       mostrarMenu(e.pageX, e.pageY, i);
@@ -134,6 +140,33 @@ function actualizarTabla() {
 
     tbody.appendChild(tr);
   });
+}
+
+function seleccionarFila(index, tr) {
+  if (filaSeleccionada) filaSeleccionada.classList.remove("seleccionada");
+  tr.classList.add("seleccionada");
+  filaSeleccionada = tr;
+
+  // Resaltar marcador en el mapa
+  if (marcadorSeleccionado) {
+    marcadorSeleccionado.setIcon(iconoNormal);
+  }
+
+  const d = datos[index];
+  if (mapa && capaMarcadores) {
+    capaMarcadores.eachLayer(layer => {
+      const lat = layer.getLatLng().lat;
+      const lng = layer.getLatLng().lng;
+
+      if (
+        (Math.abs(lat - d.y) < 1e-8 && Math.abs(lng - d.x) < 1e-8) ||
+        (d.y_t !== undefined && Math.abs(lat - d.y_t) < 1e-8 && Math.abs(lng - d.x_t) < 1e-8)
+      ) {
+        layer.setIcon(iconoSeleccionado);
+        marcadorSeleccionado = layer;
+      }
+    });
+  }
 }
 
 function mostrarMenu(x, y, index) {
@@ -166,9 +199,9 @@ function copiarFila(index, tipo) {
   let texto = "";
 
   if (tipo === "origen") {
-    texto = `${d.x.toFixed(7)},${d.y.toFixed(7)}`;
+    texto = `${d.x},${d.y}`;
   } else {
-    texto = `${d.x_t.toFixed(7)},${d.y_t.toFixed(7)}`;
+    texto = `${d.x_t},${d.y_t}`;
   }
 
   navigator.clipboard.writeText(texto);
@@ -180,13 +213,6 @@ function eliminarFila(index) {
   actualizarTabla();
 }
 
-function limpiarTodo() {
-  if (confirm("¿Desea eliminar todas las coordenadas?")) {
-    datos = [];
-    actualizarTabla();
-  }
-}
-
 // ------------------------
 // COPIAR TODO
 // ------------------------
@@ -195,9 +221,9 @@ function copiarTodo(tipo) {
   let texto = "";
   datos.forEach(d => {
     if (tipo === "origen") {
-      texto += `${d.x.toFixed(7)},${d.y.toFixed(7)}\n`;
+      texto += `${d.x},${d.y}\n`;
     } else if (d.x_t !== undefined) {
-      texto += `${d.x_t.toFixed(7)},${d.y_t.toFixed(7)}\n`;
+      texto += `${d.x_t},${d.y_t}\n`;
     }
   });
 
@@ -205,14 +231,39 @@ function copiarTodo(tipo) {
   alert("Coordenadas copiadas");
 }
 
+function limpiarTodo() {
+  if (confirm("¿Desea eliminar todas las coordenadas?")) {
+    datos = [];
+    actualizarTabla();
+    if (mapa) {
+      mapa.remove();
+      mapa = null;
+    }
+  }
+}
+
 // ------------------------
-// MAPA CON CAPAS
+// MAPA CON AUTO-ZOOM + CAPAS
 // ------------------------
+
+const iconoNormal = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34]
+});
+
+const iconoSeleccionado = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-red.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34]
+});
 
 function mostrarMapa(tipo) {
   if (mapa) mapa.remove();
 
-  mapa = L.map("map").setView([4.6, -74.07], 11);
+  mapa = L.map("map");
 
   const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap"
@@ -237,13 +288,31 @@ function mostrarMapa(tipo) {
 
   capaMarcadores = L.layerGroup().addTo(mapa);
 
+  let bounds = [];
+
   datos.forEach(d => {
+    let lat, lng;
+
     if (tipo === "origen") {
-      capaMarcadores.addLayer(L.marker([d.y, d.x]));
+      lat = d.y;
+      lng = d.x;
     } else if (d.x_t !== undefined) {
-      capaMarcadores.addLayer(L.marker([d.y_t, d.x_t]));
+      lat = d.y_t;
+      lng = d.x_t;
+    } else {
+      return;
     }
+
+    const marcador = L.marker([lat, lng], { icon: iconoNormal });
+    capaMarcadores.addLayer(marcador);
+    bounds.push([lat, lng]);
   });
+
+  if (bounds.length > 0) {
+    mapa.fitBounds(bounds, { padding: [30, 30] });
+  } else {
+    mapa.setView([4.6, -74.07], 11);
+  }
 
   L.control.layers(baseMaps).addTo(mapa);
 }
