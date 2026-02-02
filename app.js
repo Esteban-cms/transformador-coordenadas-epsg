@@ -4,22 +4,22 @@ let capaMarcadores;
 let marcadorSeleccionado = null;
 let filaSeleccionada = null;
 
-/* DEFINICIONES EPSG OFICIALES */
+/* ================= DEFINICIONES EPSG OFICIALES ================= */
 proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
+proj4.defs("EPSG:4996", "+proj=longlat +datum=WGS84 +no_defs");
 
-/* MAGNA Colombia Oeste */
 proj4.defs("EPSG:3115", "+proj=tmerc +lat_0=4 +lon_0=-77 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
-
-/* MAGNA Colombia Bogotá */
 proj4.defs("EPSG:3116", "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
 
-/* MAGNA Colombia Central (EPSG:9377) — ESTA ERA LA QUE ESTABA MAL */
+/* 🔥 EPSG:9377 CORRECTO (igual a pyproj/QGIS) */
 proj4.defs("EPSG:9377", "+proj=tmerc +lat_0=4 +lon_0=-73 +k=1 +x_0=500000 +y_0=2000000 +ellps=GRS80 +units=m +no_defs");
+
+/* ================================================================ */
 
 const origenSel = document.getElementById("epsgOrigen");
 const destinoSel = document.getElementById("epsgDestino");
 
-["3115", "3116", "4326", "9377"].forEach(epsg => {
+["4326", "4996", "3115", "3116", "9377"].forEach(epsg => {
   origenSel.add(new Option("EPSG:" + epsg, epsg));
   destinoSel.add(new Option("EPSG:" + epsg, epsg));
 });
@@ -27,7 +27,19 @@ const destinoSel = document.getElementById("epsgDestino");
 origenSel.value = "4326";
 destinoSel.value = "9377";
 
-/* -------------------- INGRESO -------------------- */
+/* ======================= UTILIDADES ======================= */
+
+function esGeografico(epsg) {
+  return epsg === "4326" || epsg === "4996";
+}
+
+function formatoDecimal(valor, epsg) {
+  if (valor === "" || valor === undefined || valor === null) return "";
+  const dec = esGeografico(epsg) ? 7 : 3;
+  return Number(valor).toFixed(dec);
+}
+
+/* ======================= INGRESO ======================= */
 
 function agregarCoordenada() {
   const x = parseFloat(document.getElementById("xInput").value);
@@ -86,40 +98,44 @@ function cargarArchivo(event) {
   }
 }
 
-/* -------------------- TRANSFORMACIÓN CORRECTA -------------------- */
+/* ======================= TRANSFORMACIÓN (IGUAL A PYTHON) ======================= */
 
 function transformar() {
+  if (datos.length === 0) {
+    alert("No hay datos");
+    return;
+  }
+
   const origen = "EPSG:" + origenSel.value;
   const destino = "EPSG:" + destinoSel.value;
 
   datos.forEach(d => {
-    const [x2, y2] = proj4(origen, destino, [d.x, d.y]);
-    d.x_t = x2;
-    d.y_t = y2;
+    const result = proj4(origen, destino, [d.x, d.y]); // always XY
+    d.x_t = result[0];
+    d.y_t = result[1];
   });
 
   actualizarTabla();
 }
 
-/* -------------------- TABLA -------------------- */
+/* ======================= TABLA ======================= */
 
 function actualizarTabla() {
   const tbody = document.querySelector("#tabla tbody");
   tbody.innerHTML = "";
 
-  const destino = destinoSel.value;
-  const esGeografico = destino === "4326";
-  const dec = esGeografico ? 7 : 3;
+  const epsgOrigen = origenSel.value;
+  const epsgDestino = destinoSel.value;
 
   datos.forEach((d, i) => {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
       <td>${i + 1}</td>
-      <td>${d.x.toFixed(dec)}</td>
-      <td>${d.y.toFixed(dec)}</td>
-      <td>${d.x_t !== undefined ? d.x_t.toFixed(dec) : ""}</td>
-      <td>${d.y_t !== undefined ? d.y_t.toFixed(dec) : ""}</td>
+      <td>${formatoDecimal(d.x, epsgOrigen)}</td>
+      <td>${formatoDecimal(d.y, epsgOrigen)}</td>
+      <td>${formatoDecimal(d.x_t, epsgDestino)}</td>
+      <td>${formatoDecimal(d.y_t, epsgDestino)}</td>
     `;
 
     tr.addEventListener("click", () => seleccionarFila(i, tr));
@@ -132,7 +148,7 @@ function actualizarTabla() {
   });
 }
 
-/* -------------------- SELECCIÓN -------------------- */
+/* ======================= SELECCIÓN ======================= */
 
 function seleccionarFila(index, tr) {
   if (filaSeleccionada) filaSeleccionada.classList.remove("seleccionada");
@@ -146,7 +162,7 @@ function seleccionarFila(index, tr) {
     capaMarcadores.eachLayer(layer => {
       const { lat, lng } = layer.getLatLng();
       if (
-        Math.abs(lat - d.y) < 1e-8 && Math.abs(lng - d.x) < 1e-8 ||
+        (Math.abs(lat - d.y) < 1e-8 && Math.abs(lng - d.x) < 1e-8) ||
         (d.y_t !== undefined && Math.abs(lat - d.y_t) < 1e-8 && Math.abs(lng - d.x_t) < 1e-8)
       ) {
         layer.setIcon(iconoSeleccionado);
@@ -156,7 +172,7 @@ function seleccionarFila(index, tr) {
   }
 }
 
-/* -------------------- MENÚ CLIC DERECHO -------------------- */
+/* ======================= MENÚ CLIC DERECHO ======================= */
 
 function mostrarMenu(x, y, index) {
   const menu = document.createElement("div");
@@ -188,9 +204,13 @@ function copiarFila(index, tipo) {
   let texto = "";
 
   if (tipo === "origen") {
-    texto = `${d.x},${d.y}`;
+    texto = `${formatoDecimal(d.x, origenSel.value)},${formatoDecimal(d.y, origenSel.value)}`;
   } else {
-    texto = `${d.x_t},${d.y_t}`;
+    if (d.x_t === undefined) {
+      alert("Debe transformar primero.");
+      return;
+    }
+    texto = `${formatoDecimal(d.x_t, destinoSel.value)},${formatoDecimal(d.y_t, destinoSel.value)}`;
   }
 
   navigator.clipboard.writeText(texto);
@@ -202,15 +222,24 @@ function eliminarFila(index) {
   actualizarTabla();
 }
 
-/* -------------------- ACCIONES -------------------- */
+/* ======================= ACCIONES ======================= */
 
 function copiarTodo(tipo) {
+  if (datos.length === 0) {
+    alert("No hay datos");
+    return;
+  }
+
   let texto = "";
   datos.forEach(d => {
     if (tipo === "origen") {
-      texto += `${d.x},${d.y}\n`;
-    } else if (d.x_t !== undefined) {
-      texto += `${d.x_t},${d.y_t}\n`;
+      texto += `${formatoDecimal(d.x, origenSel.value)},${formatoDecimal(d.y, origenSel.value)}\n`;
+    } else {
+      if (d.x_t === undefined) {
+        alert("Debe transformar primero.");
+        return;
+      }
+      texto += `${formatoDecimal(d.x_t, destinoSel.value)},${formatoDecimal(d.y_t, destinoSel.value)}\n`;
     }
   });
 
@@ -229,7 +258,7 @@ function limpiarTodo() {
   }
 }
 
-/* -------------------- MAPA -------------------- */
+/* ======================= MAPA ======================= */
 
 const iconoNormal = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -239,7 +268,7 @@ const iconoNormal = L.icon({
 });
 
 const iconoSeleccionado = L.icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34]
@@ -281,11 +310,10 @@ function mostrarMapa(tipo) {
     if (tipo === "origen") {
       lat = d.y;
       lng = d.x;
-    } else if (d.x_t !== undefined) {
+    } else {
+      if (d.x_t === undefined) return;
       lat = d.y_t;
       lng = d.x_t;
-    } else {
-      return;
     }
 
     const marcador = L.marker([lat, lng], { icon: iconoNormal });
@@ -302,7 +330,7 @@ function mostrarMapa(tipo) {
   L.control.layers(baseMaps).addTo(mapa);
 }
 
-/* -------------------- EXPORTAR GEOJSON -------------------- */
+/* ======================= EXPORTAR GEOJSON ======================= */
 
 function exportarGeoJSON() {
   if (datos.length === 0 || datos[0].x_t === undefined) {
