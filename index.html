@@ -1,107 +1,79 @@
-body {
-  font-family: "Segoe UI", Tahoma, sans-serif;
-  background: #eef2f7;
-  margin: 0;
-  padding: 0;
-}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Transformador de Coordenadas EPSG</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
 
-.app-container {
-  max-width: 1200px;
-  margin: auto;
-  padding: 16px;
-}
+<div class="app-container">
 
-header {
-  text-align: center;
-  margin-bottom: 15px;
-}
+  <header>
+    <h1>Transformador de Coordenadas EPSG</h1>
+    <p>Conversión, copia, visualización y exportación de coordenadas.</p>
+  </header>
 
-header h1 {
-  margin: 0;
-  color: #1f3b5c;
-  font-size: 26px;
-}
+  <section class="card">
+    <h3>Ingreso de coordenadas</h3>
+    <div class="grid">
+      <input id="xInput" placeholder="X / Longitud">
+      <input id="yInput" placeholder="Y / Latitud">
+      <button class="btn primary small" onclick="agregarCoordenada()">Agregar</button>
+      <input type="file" id="fileInput" accept=".csv,.txt,.xlsx" onchange="cargarArchivo(event)">
+    </div>
+  </section>
 
-header p {
-  color: #555;
-  font-size: 14px;
-}
+  <section class="card">
+    <h3>Transformación EPSG</h3>
+    <div class="grid">
+      <select id="epsgOrigen"></select>
+      <select id="epsgDestino"></select>
+      <button class="btn success small" onclick="transformar()">Transformar</button>
+      <button class="btn danger small" onclick="limpiarTodo()">Limpiar</button>
+    </div>
+  </section>
 
-.card {
-  background: white;
-  padding: 14px 16px;
-  border-radius: 10px;
-  margin-bottom: 12px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-}
+  <section class="card">
+    <h3>Acciones</h3>
+    <div class="grid">
+      <button class="btn small" onclick="copiarTodo('origen')">Copiar origen</button>
+      <button class="btn small" onclick="copiarTodo('transformado')">Copiar transformado</button>
+      <button class="btn small" onclick="mostrarMapa('origen')">Mapa origen</button>
+      <button class="btn small" onclick="mostrarMapa('transformado')">Mapa transformado</button>
+      <button class="btn primary small" onclick="exportarGeoJSON()">Exportar GeoJSON</button>
+    </div>
+  </section>
 
-.card h3 {
-  margin-top: 0;
-  color: #1f3b5c;
-  font-size: 17px;
-}
+  <section class="card">
+    <h3>Tabla de coordenadas</h3>
+    <table id="tabla">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>X</th>
+          <th>Y</th>
+          <th>X Transformado</th>
+          <th>Y Transformado</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <small>Clic derecho para copiar o eliminar.</small>
+  </section>
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
-  align-items: center;
-}
+  <section class="card">
+    <h3>Mapa</h3>
+    <div id="map"></div>
+  </section>
 
-input, select {
-  padding: 6px 8px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 13px;
-}
+</div>
 
-input[type="file"] {
-  padding: 4px;
-}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="app.js"></script>
 
-button.btn {
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  background: #6c7a89;
-  color: white;
-  cursor: pointer;
-  font-size: 12.5px;
-}
-
-button.btn.primary { background: #1f6feb; }
-button.btn.success { background: #2da44e; }
-button.btn.danger { background: #cf222e; }
-
-button.btn:hover {
-  opacity: 0.9;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  margin-top: 8px;
-  font-size: 12.5px;
-}
-
-th, td {
-  border: 1px solid #ddd;
-  padding: 6px;
-  text-align: center;
-}
-
-thead {
-  background: #f1f4f8;
-}
-
-tr:hover {
-  background: #eef5ff;
-  cursor: pointer;
-}
-
-#map {
-  height: 360px;
-  border-radius: 8px;
-  overflow: hidden;
-}
+</body>
+</html>
