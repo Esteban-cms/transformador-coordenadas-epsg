@@ -8,63 +8,65 @@ body {
 .app-container {
   max-width: 1200px;
   margin: auto;
-  padding: 20px;
+  padding: 16px;
 }
 
 header {
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
 }
 
 header h1 {
   margin: 0;
   color: #1f3b5c;
+  font-size: 26px;
 }
 
 header p {
   color: #555;
+  font-size: 14px;
 }
 
 .card {
   background: white;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  padding: 14px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
 }
 
-.card h2 {
+.card h3 {
   margin-top: 0;
   color: #1f3b5c;
+  font-size: 17px;
 }
 
-.grid-4 {
+.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.grid-5 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  align-items: center;
 }
 
 input, select {
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 6px 8px;
+  border-radius: 5px;
   border: 1px solid #ccc;
-  width: 100%;
+  font-size: 13px;
+}
+
+input[type="file"] {
+  padding: 4px;
 }
 
 button.btn {
-  padding: 9px 14px;
+  padding: 6px 10px;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   background: #6c7a89;
   color: white;
   cursor: pointer;
-  font-weight: 500;
+  font-size: 12.5px;
 }
 
 button.btn.primary { background: #1f6feb; }
@@ -79,14 +81,14 @@ table {
   width: 100%;
   border-collapse: collapse;
   background: white;
-  margin-top: 10px;
+  margin-top: 8px;
+  font-size: 12.5px;
 }
 
 th, td {
   border: 1px solid #ddd;
-  padding: 8px;
+  padding: 6px;
   text-align: center;
-  font-size: 14px;
 }
 
 thead {
@@ -99,7 +101,7 @@ tr:hover {
 }
 
 #map {
-  height: 420px;
-  border-radius: 10px;
+  height: 360px;
+  border-radius: 8px;
   overflow: hidden;
 }
