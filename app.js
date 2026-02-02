@@ -4,17 +4,11 @@ let capaMarcadores;
 let marcadorSeleccionado = null;
 let filaSeleccionada = null;
 
-/* EPSG OFICIALES */
-const epsgDefs = {
-  "4326": "+proj=longlat +datum=WGS84 +no_defs",
-  "3116": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs",
-  "3115": "+proj=tmerc +lat_0=4 +lon_0=-73 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs",
-  "9377": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs"
-};
-
-for (let code in epsgDefs) {
-  proj4.defs("EPSG:" + code, epsgDefs[code]);
-}
+/* DEFINICIONES OFICIALES EPSG (COLOMBIA) */
+proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
+proj4.defs("EPSG:3116", "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
+proj4.defs("EPSG:3115", "+proj=tmerc +lat_0=4 +lon_0=-73 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
+proj4.defs("EPSG:9377", "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
 
 const origenSel = document.getElementById("epsgOrigen");
 const destinoSel = document.getElementById("epsgDestino");
