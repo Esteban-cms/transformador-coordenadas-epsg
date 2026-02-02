@@ -12,7 +12,7 @@
 
   <header>
     <h1>Transformador de Coordenadas EPSG</h1>
-    <p>Conversión, copia, visualización y exportación de coordenadas.</p>
+    <p>Conversión profesional entre sistemas MAGNA y WGS84.</p>
   </header>
 
   <section class="card">
@@ -20,7 +20,7 @@
     <div class="grid">
       <input id="xInput" placeholder="X / Longitud">
       <input id="yInput" placeholder="Y / Latitud">
-      <button class="btn primary small" onclick="agregarCoordenada()">Agregar</button>
+      <button class="btn primary" onclick="agregarCoordenada()">Agregar</button>
       <input type="file" id="fileInput" accept=".csv,.txt,.xlsx" onchange="cargarArchivo(event)">
     </div>
   </section>
@@ -30,19 +30,19 @@
     <div class="grid">
       <select id="epsgOrigen"></select>
       <select id="epsgDestino"></select>
-      <button class="btn success small" onclick="transformar()">Transformar</button>
-      <button class="btn danger small" onclick="limpiarTodo()">Limpiar</button>
+      <button class="btn success" onclick="transformar()">Transformar</button>
+      <button class="btn danger" onclick="limpiarTodo()">Limpiar</button>
     </div>
   </section>
 
   <section class="card">
     <h3>Acciones</h3>
     <div class="grid">
-      <button class="btn small" onclick="copiarTodo('origen')">Copiar origen</button>
-      <button class="btn small" onclick="copiarTodo('transformado')">Copiar transformado</button>
-      <button class="btn small" onclick="mostrarMapa('origen')">Mapa origen</button>
-      <button class="btn small" onclick="mostrarMapa('transformado')">Mapa transformado</button>
-      <button class="btn primary small" onclick="exportarGeoJSON()">Exportar GeoJSON</button>
+      <button class="btn" onclick="copiarTodo('origen')">Copiar origen</button>
+      <button class="btn" onclick="copiarTodo('transformado')">Copiar transformado</button>
+      <button class="btn" onclick="mostrarMapa('origen')">Mapa origen</button>
+      <button class="btn" onclick="mostrarMapa('transformado')">Mapa transformado</button>
+      <button class="btn primary" onclick="exportarGeoJSON()">Exportar GeoJSON</button>
     </div>
   </section>
 
