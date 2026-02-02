@@ -4,11 +4,17 @@ let capaMarcadores;
 let marcadorSeleccionado = null;
 let filaSeleccionada = null;
 
-/* DEFINICIONES OFICIALES EPSG (COLOMBIA) */
+/* DEFINICIONES EPSG OFICIALES */
 proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
+
+/* MAGNA Colombia Oeste */
+proj4.defs("EPSG:3115", "+proj=tmerc +lat_0=4 +lon_0=-77 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
+
+/* MAGNA Colombia Bogotá */
 proj4.defs("EPSG:3116", "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
-proj4.defs("EPSG:3115", "+proj=tmerc +lat_0=4 +lon_0=-73 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
-proj4.defs("EPSG:9377", "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs");
+
+/* MAGNA Colombia Central (EPSG:9377) — ESTA ERA LA QUE ESTABA MAL */
+proj4.defs("EPSG:9377", "+proj=tmerc +lat_0=4 +lon_0=-73 +k=1 +x_0=500000 +y_0=2000000 +ellps=GRS80 +units=m +no_defs");
 
 const origenSel = document.getElementById("epsgOrigen");
 const destinoSel = document.getElementById("epsgDestino");
@@ -95,7 +101,7 @@ function transformar() {
   actualizarTabla();
 }
 
-/* -------------------- TABLA + MENÚ -------------------- */
+/* -------------------- TABLA -------------------- */
 
 function actualizarTabla() {
   const tbody = document.querySelector("#tabla tbody");
@@ -126,14 +132,14 @@ function actualizarTabla() {
   });
 }
 
+/* -------------------- SELECCIÓN -------------------- */
+
 function seleccionarFila(index, tr) {
   if (filaSeleccionada) filaSeleccionada.classList.remove("seleccionada");
   tr.classList.add("seleccionada");
   filaSeleccionada = tr;
 
-  if (marcadorSeleccionado) {
-    marcadorSeleccionado.setIcon(iconoNormal);
-  }
+  if (marcadorSeleccionado) marcadorSeleccionado.setIcon(iconoNormal);
 
   const d = datos[index];
   if (mapa && capaMarcadores) {
@@ -149,6 +155,8 @@ function seleccionarFila(index, tr) {
     });
   }
 }
+
+/* -------------------- MENÚ CLIC DERECHO -------------------- */
 
 function mostrarMenu(x, y, index) {
   const menu = document.createElement("div");
@@ -221,7 +229,7 @@ function limpiarTodo() {
   }
 }
 
-/* -------------------- MAPA CON CAPAS Y AUTO ZOOM -------------------- */
+/* -------------------- MAPA -------------------- */
 
 const iconoNormal = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
