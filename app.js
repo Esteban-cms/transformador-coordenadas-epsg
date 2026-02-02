@@ -2,27 +2,32 @@ let datos = [];
 let mapa;
 let capaMarcadores;
 
-// EPSG comunes (Colombia + WGS84)
-const epsgList = {
+// Definiciones EPSG oficiales (corrigen error hacia 4326)
+const epsgDefs = {
   "4326": "+proj=longlat +datum=WGS84 +no_defs",
   "3116": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=0.9992 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs",
   "3115": "+proj=tmerc +lat_0=4 +lon_0=-73 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs",
   "9377": "+proj=tmerc +lat_0=4.59620041666667 +lon_0=-74.0775079166667 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +units=m +no_defs"
 };
 
-// Cargar combos EPSG
+// Registrar EPSG en Proj4
+for (let code in epsgDefs) {
+  proj4.defs("EPSG:" + code, epsgDefs[code]);
+}
+
+// Llenar combos
 const origenSel = document.getElementById("epsgOrigen");
 const destinoSel = document.getElementById("epsgDestino");
 
-for (let epsg in epsgList) {
-  origenSel.add(new Option(epsg, epsg));
-  destinoSel.add(new Option(epsg, epsg));
+for (let epsg in epsgDefs) {
+  origenSel.add(new Option("EPSG:" + epsg, epsg));
+  destinoSel.add(new Option("EPSG:" + epsg, epsg));
 }
 origenSel.value = "4326";
 destinoSel.value = "3116";
 
 // ------------------------
-// INGRESO DE DATOS
+// INGRESO
 // ------------------------
 
 function agregarCoordenada() {
@@ -87,11 +92,11 @@ function cargarArchivo(event) {
 // ------------------------
 
 function transformar() {
-  const origen = origenSel.value;
-  const destino = destinoSel.value;
+  const origen = "EPSG:" + origenSel.value;
+  const destino = "EPSG:" + destinoSel.value;
 
   datos.forEach(d => {
-    const res = proj4(epsgList[origen], epsgList[destino], [d.x, d.y]);
+    const res = proj4(origen, destino, [d.x, d.y]);
     d.x_t = res[0];
     d.y_t = res[1];
   });
@@ -100,18 +105,20 @@ function transformar() {
 }
 
 // ------------------------
-// TABLA + MENÚ CONTEXTUAL
+// TABLA + MENÚ
 // ------------------------
 
 function actualizarTabla() {
   const tbody = document.querySelector("#tabla tbody");
   tbody.innerHTML = "";
 
+  const destino = destinoSel.value;
+  const esGeografico = destino === "4326";
+
+  const dec = esGeografico ? 7 : 3;
+
   datos.forEach((d, i) => {
     const tr = document.createElement("tr");
-
-    const esGeografico = destinoSel.value === "4326" || origenSel.value === "4326";
-    const dec = esGeografico ? 7 : 3;
 
     tr.innerHTML = `
       <td>${i + 1}</td>
@@ -200,17 +207,34 @@ function copiarTodo(tipo) {
 }
 
 // ------------------------
-// MAPA
+// MAPA CON CAPAS
 // ------------------------
 
 function mostrarMapa(tipo) {
   if (mapa) mapa.remove();
 
-  mapa = L.map("map").setView([4.6, -74.07], 12);
+  mapa = L.map("map").setView([4.6, -74.07], 11);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap"
-  }).addTo(mapa);
+  });
+
+  const sat = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { attribution: "© Esri" }
+  );
+
+  const topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenTopoMap"
+  });
+
+  osm.addTo(mapa);
+
+  const baseMaps = {
+    "Mapa base": osm,
+    "Satélite": sat,
+    "Topográfico": topo
+  };
 
   capaMarcadores = L.layerGroup().addTo(mapa);
 
@@ -221,10 +245,12 @@ function mostrarMapa(tipo) {
       capaMarcadores.addLayer(L.marker([d.y_t, d.x_t]));
     }
   });
+
+  L.control.layers(baseMaps).addTo(mapa);
 }
 
 // ------------------------
-// EXPORTAR SHP (GEOJSON)
+// EXPORTAR GEOJSON
 // ------------------------
 
 function exportarGeoJSON() {
